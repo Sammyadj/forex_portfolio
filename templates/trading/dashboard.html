@@ -1,0 +1,15 @@
+{% extends 'base.html' %}
+{% block content %}
+    <h1>Dashboard</h1>
+    <a href="{% url 'trading:open_trade' %}">Open New Trade</a>
+
+    <!-- List trades with options to close them -->
+    <ul>
+        {% for trade in trades %}
+            <li>
+                {{ trade.currency_pair }} -
+                <a href="{% url 'trading:close_trade' trade.id %}">Close Trade</a>
+            </li>
+        {% endfor %}
+    </ul>
+{% endblock %}

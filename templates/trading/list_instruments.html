@@ -1,0 +1,13 @@
+{% extends 'base.html' %}
+
+{% block title %}List of Instruments{% endblock %}
+
+{% block content %}
+    <h1>Available Instruments</h1>
+    <ul>
+        {% for instrument in instruments %}
+            <li>{{ instrument.display_name }}</li>
+        {% endfor %}
+    </ul>
+{% endblock %}
+
