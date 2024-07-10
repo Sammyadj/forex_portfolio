@@ -18,7 +18,7 @@ The Forex Trading Platform is designed to simulate Forex trading using real-time
 
 - **Instant Execution of Trades**: All trades are executed instantly based on the user's or bot's command, ensuring timely market entry and exit.
 
-3. System Limitations and Boundaries
+### 3. System Limitations and Boundaries
 
 - **API Key Usage**: Since the app uses a single API key provided by the developer, all data and trading actions are simulated through one OANDA account. This setup is intended for demonstration and learning purposes only, not for real trading.
 
@@ -30,7 +30,7 @@ The Forex Trading Platform is designed to simulate Forex trading using real-time
 
 - **Data Latency**: While the app aims to provide real-time data, there might be slight delays or discrepancies due to API limitations or network issues.
 
-4. Technical Architecture
+### 4. Technical Architecture
 
 - **Trading Execution**: Trades are executed based on live data fetched from the OANDA API. When a user or bot decides to execute a trade, the app sends a request to the OANDA API to open or close a trade with specified conditions (e.g., take profit, stop loss).
 
@@ -38,11 +38,6 @@ The Forex Trading Platform is designed to simulate Forex trading using real-time
 
 - **User Interface**: The user interface updates dynamically to reflect changes in the market and the status of trades, providing users with up-to-date visual feedback.
 
-5. Future Enhancements
-
-- **Multi-Currency Support**: Planning to introduce multi-currency capabilities to allow trading in different Forex pairs.
-
-- **Advanced Order Types**: Implementing more complex order types to enhance trading strategies.
 
 - **Improved Data Accuracy**: Enhancing the data fetching mechanism to reduce latency and improve the accuracy of market data displayed.
 
