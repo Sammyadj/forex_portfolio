@@ -2,10 +2,10 @@
 
 ## Project Overview
 
-Forex Trading Platform Specifications
-1. Overview
+## Forex Trading Platform Specifications
+### 1. Overview
 The Forex Trading Platform is designed to simulate Forex trading using real-time data fetched from the OANDA API. The platform allows users to test trading strategies in a risk-free environment using virtual currency (GBP). Users can engage in trading activities, apply automated trading algorithms (bots), and manually intervene in trades.
-2. User Capabilities
+### 2. User Capabilities
 - **View Real-Time Charts**: Users can view live Forex market data in chart form, similar to the charts on the OANDA practice account dashboard. This feature helps users monitor market trends and make informed trading decisions.
 
 - **Select and Apply Trading Strategies**: Users can choose from a list of predefined trading algorithms or bots. Once a strategy is selected, it can automatically execute trades based on its programming.
