@@ -123,7 +123,7 @@ export default {
 </style>
 
 
-<!-- <template>
+<template>
   <div>
     <ChartParams @update:granularity="fetchChartData" @update:instrument="fetchChartData"/>
     <CandlestickChart :data="chartData"/>

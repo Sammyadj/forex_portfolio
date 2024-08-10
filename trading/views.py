@@ -2,7 +2,7 @@ from rest_framework.views import APIView
 from rest_framework.response import Response
 from .api_utils import get_account_instruments, get_current_price, fetch_candle_data
 from .serializers import InstrumentSerializer, PriceSerializer, CandleSerializer
-from django.utils.dateparse import parse_datetime
+
 
 class APIRootView(APIView):
     def get(self, request, format=None):
@@ -59,7 +59,6 @@ class CandleDataView(APIView):
                 return Response(serializer.data)
             return Response(serializer.errors, status=400)
         return Response({'error': 'Failed to fetch data'}, status=404)
-
 
 # class TradeViewSet(viewsets.ModelViewSet):
 #     queryset = Trade.objects.all()
