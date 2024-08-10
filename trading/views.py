@@ -1,52 +1,71 @@
-from django.shortcuts import redirect, render
-from django.contrib.auth.decorators import login_required
-from django.shortcuts import get_object_or_404, redirect
-from .models import Trade, Instrument, Strategy
-from .forms import TradeForm
-from django.http import JsonResponse
+from rest_framework.views import APIView
+from rest_framework.response import Response
+from .api_utils import get_account_instruments, get_current_price, fetch_candle_data
+from .serializers import InstrumentSerializer, PriceSerializer, CandleSerializer
+from django.utils.dateparse import parse_datetime
 
-from .api_utils import get_account_instruments
-
-
-@login_required
-def dashboard(request):
-
-    trades = Trade.objects.filter(profile__user=request.user, is_open=True)
-    context = {
-        'trades': trades,
-        'balance': request.user.profile.balance  # Ensure the user has a profile with a balance
-    }
-    return render(request, 'trading/dashboard.html', context)
+class APIRootView(APIView):
+    def get(self, request, format=None):
+        api_endpoints = {
+            'instruments': request.build_absolute_uri('instruments/'),
+            'current prices': request.build_absolute_uri('pricing/{instrument_name}/'),
+            'candle data': request.build_absolute_uri('candles/{instrument_name}/')
+        }
+        return Response(api_endpoints)
 
 
-def open_trade(request):
-    # Assuming there's form handling here
-    if request.method == 'POST':
-        form = TradeForm(request.POST)
-        if form.is_valid():
-            new_trade = form.save(commit=False)
-            new_trade.profile = request.user.profile
-            new_trade.save()
-            return redirect('trading:dashboard')
-    else:
-        form = TradeForm()
-    return render(request, 'trading/open_trade.html', {'form': form})
+class InstrumentListView(APIView):
+    def get(self, request, instrument_name=None):
+        # instrument_query = request.query_params.get('instruments', None)
+        data = get_account_instruments(instrument_name)
+        instruments_data = data.get('instruments', [])
+        # Filter out only the necessary fields:
+        filtered_instruments = [
+            {
+                'name': inst['name'],
+                'display_name': inst['displayName'],
+                'maximum_order_units': inst['maximumOrderUnits'],
+                'margin_rate': inst['marginRate'],
+                'minimum_trade_size': inst['minimumTradeSize'],
+                'pip_location': inst['pipLocation'],
+                'type': inst['type']
+            } for inst in instruments_data
+        ]
+        serializer = InstrumentSerializer(data=filtered_instruments, many=True)
+        if serializer.is_valid():
+            return Response(serializer.data)
+        return Response(serializer.errors, status=400)
 
 
-def close_trade(request, trade_id):
-    trade = get_object_or_404(Trade, pk=trade_id)
-    if request.method == 'POST':
-        # Assuming the trade closing logic here
-        trade.close_trade()
-        return redirect('trading:dashboard')
-    return render(request, 'trading/close_trade.html', {'trade': trade})
+class CurrentPriceView(APIView):
+    def get(self, request, instrument_name):
+        bid_price, ask_price = get_current_price(instrument_name)
+        if bid_price and ask_price:
+            serializer = PriceSerializer(data={'bid_price': bid_price, 'ask_price': ask_price})
+            if serializer.is_valid():
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+        return Response({'error': 'Failed to fetch prices'}, status=404)
 
 
-def test_api(request):
-    data = get_account_instruments()
-    return JsonResponse(data)
+class CandleDataView(APIView):
+    def get(self, request, instrument_name):
+        count = request.query_params.get('count', '100')
+        granularity = request.query_params.get('granularity', 'H1')
+        candles = fetch_candle_data(instrument_name, count=count, granularity=granularity)
+        if 'candles' in candles:
+            serializer = CandleSerializer(data=candles['candles'], many=True)
+            if serializer.is_valid():
+                return Response(serializer.data)
+            return Response(serializer.errors, status=400)
+        return Response({'error': 'Failed to fetch data'}, status=404)
 
 
-def list_instruments(request):
-    instruments = Instrument.objects.all()
-    return render(request, 'trading/list_instruments.html', {'instruments': instruments})
+# class TradeViewSet(viewsets.ModelViewSet):
+#     queryset = Trade.objects.all()
+#     serializer_class = TradeSerializer
+#
+#
+# class InstrumentViewSet(viewsets.ModelViewSet):
+#     queryset = Instrument.objects.all()
+#     serializer_class = InstrumentSerializer

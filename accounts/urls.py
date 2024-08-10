@@ -1,11 +1,14 @@
-from django.urls import path
-from django.contrib.auth import views as auth_views
-from . import views
+from django.urls import path, include
+from .views import RegisterView, LoginView, current_user_profile
+from rest_framework.routers import DefaultRouter
+from .views import ProfileViewSet
 
-app_name = 'accounts'
-
+router = DefaultRouter()
+router.register(r'profiles', ProfileViewSet)
 urlpatterns = [
-    path('login/', auth_views.LoginView.as_view(template_name='accounts/login.html'), name='login'),
-    path('logout/', auth_views.LogoutView.as_view(next_page='/'), name='logout'),
-    path('register/', views.register, name='register'),
+    path('register/', RegisterView.as_view(), name='register'),
+    path('login/', LoginView.as_view(), name='login'),
+    path('', include(router.urls)),
+    path('current_profile/', current_user_profile, name='current_profile'),
+
 ]

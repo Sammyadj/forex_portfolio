@@ -1,0 +1,21 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Forex Portfolio Management</title>
+    <!-- Link to Vue-generated CSS -->
+    <link rel="stylesheet" href="{% static 'frontend/css/app.css' %}">
+</head>
+<body>
+<h1>Django Server</h1>
+<h2>Welcome to Forex Portfolio Management App.</h2>
+<p>This is the root element for the Portfolio app</p>
+<p>Follow the link to access the app</p>
+<a href="http://localhost:8080/ ">Frontend Application</a>
+<!-- This is the root element for your Vue app -->
+<div id="app"></div>
+<!-- Link to Vue-generated JavaScript -->
+<script src="{% static 'frontend/js/app.js' %}"></script>
+</body>
+</html>

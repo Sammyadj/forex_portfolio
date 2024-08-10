@@ -27,7 +27,7 @@ class Instrument(models.Model):
 class Trade(models.Model):
     profile = models.ForeignKey(Profile, related_name='trades', on_delete=models.CASCADE)
     strategy = models.ForeignKey(Strategy, related_name='trades', on_delete=models.SET_NULL, null=True)
-    instrument = models.ForeignKey(Instrument, on_delete=models.CASCADE)  # Add this line
+    instrument = models.ForeignKey(Instrument, related_name='trades', on_delete=models.CASCADE)
     currency_pair = models.CharField(max_length=10)
     volume = models.DecimalField(max_digits=10, decimal_places=2)
     entry_price = models.DecimalField(max_digits=10, decimal_places=4)
