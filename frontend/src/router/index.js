@@ -57,20 +57,7 @@ router.beforeEach((to, from, next) => {
   }
 });
 
-// router.beforeEach((to, from, next) => {
-//   console.log('Navigating to:', to.name);
-//   const requiresAuth = to.matched.some(record => record.meta.requiresAuth);
-//   const isAuthenticated = localStorage.getItem('access_token');
-//   console.log('Requires Auth:', requiresAuth);
-//   console.log('Is Authenticated:', isAuthenticated);
 
-//   if (requiresAuth && !isAuthenticated) {
-//     console.log('Redirecting to Login...');
-//     next({ name: 'login' });
-//   } else {
-//     next();
-//   }
-// });
 
 
 export default router

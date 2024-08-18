@@ -44,11 +44,12 @@ class LoginSerializer(serializers.Serializer):
 
 
 class ProfileSerializer(serializers.ModelSerializer):
+    # id = serializers.IntegerField(source='user.id', read_only=True)
     username = serializers.CharField(source='user.username')
 
     class Meta:
         model = Profile
-        fields = ('username', 'balance')
+        fields = ('id', 'username', 'balance')
 
     balance = serializers.DecimalField(max_digits=7, decimal_places=2, min_value=Decimal(100.00),
                                        max_value=Decimal(1000.00))

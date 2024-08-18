@@ -8,14 +8,7 @@ API_KEY = os.getenv("API_KEY")
 ACCOUNT_ID = os.getenv("ACCOUNT_ID")
 OANDA_API_URL = os.getenv("OANDA_API_URL")
 OANDA_STREAM_URL = os.getenv("OANDA_STREAM_URL")
-SECURE_HEADER = os.getenv("SECURE_HEADER")
-
-
-def get_pricing_stream(instruments):
-    url = f"{OANDA_STREAM_URL}/accounts/{ACCOUNT_ID}/pricing/stream"
-    params = {'instruments': instruments}
-    response = requests.get(url, headers=SECURE_HEADER, params=params, stream=True)
-    return response
+SECURE_HEADER={'Authorization': f'Bearer {API_KEY}', }
 
 
 def get_account_instruments(instrument=None):

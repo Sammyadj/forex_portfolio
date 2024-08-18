@@ -1,8 +1,7 @@
+from decimal import Decimal
 from django.utils import timezone
-
 from django.db import models
 from django.contrib.auth.models import User
-
 from accounts.models import Profile
 
 
@@ -21,7 +20,12 @@ class Instrument(models.Model):
     type = models.CharField(max_length=20)
 
     def __str__(self):
-        return self.display_name
+        return self.name
+
+    def current_price(self):
+        # This method should return the current price from a live feed
+        # For example, you can fetch it from an external API or calculate it
+        return Decimal("1.12345")  # Placeholder, replace with actual price fetching logic
 
 
 class Trade(models.Model):
@@ -41,3 +45,6 @@ class Trade(models.Model):
         self.close_date = timezone.now()
         self.is_open = False
         self.save()
+
+    def __str__(self):
+        return f'{self.currency_pair} - {self.volume} at {self.entry_price}'

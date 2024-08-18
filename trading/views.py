@@ -1,7 +1,9 @@
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import viewsets
 from .api_utils import get_account_instruments, get_current_price, fetch_candle_data
-from .serializers import InstrumentSerializer, PriceSerializer, CandleSerializer
+from .models import Trade
+from .serializers import InstrumentSerializer, PriceSerializer, CandleSerializer, TradeSerializer
 
 
 class APIRootView(APIView):
@@ -60,11 +62,12 @@ class CandleDataView(APIView):
             return Response(serializer.errors, status=400)
         return Response({'error': 'Failed to fetch data'}, status=404)
 
-# class TradeViewSet(viewsets.ModelViewSet):
-#     queryset = Trade.objects.all()
-#     serializer_class = TradeSerializer
+
+class TradeViewSet(viewsets.ModelViewSet):
+    queryset = Trade.objects.all()
+    serializer_class = TradeSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(profile=self.request.user.profile)  # Assumes you have a profile linked to your user
+
 #
-#
-# class InstrumentViewSet(viewsets.ModelViewSet):
-#     queryset = Instrument.objects.all()
-#     serializer_class = InstrumentSerializer

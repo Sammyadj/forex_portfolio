@@ -1,5 +1,5 @@
 <template>
-    <div class="chart-params d-flex justify-content-center">
+    <div class="chart-params d-flex justify-content-start">
       <div class="btn-group">
         <button type="button" class="btn btn-secondary dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
           {{ selectedInstrument }}
@@ -10,6 +10,8 @@
           <a class="dropdown-item" href="#" @click="updateInstrument('USD_JPY')">USD/JPY</a>
           <a class="dropdown-item" href="#" @click="updateInstrument('AUD_USD')">AUD/USD</a>
           <a class="dropdown-item" href="#" @click="updateInstrument('GBP_JPY')">GBP/JPY</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('USD_CAD')">USD/CAD</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('GBP_CHF')">GBP/CHF</a>
         </div>
       </div>
 
@@ -50,10 +52,25 @@
   </script>
   
   <style scoped>
+  .btn-group {
+    margin-right: 1px;
+  }
+  .btn {
+    border-radius: 3px;
+    border: none;
+    color: black;
+    background-color: whitesmoke;
+  }
+  .dropdown-menu {
+    background-color: whitesmoke;
+  }
+
   .chart-params {
     display: flex;
     align-items: center;
     justify-content: center;
+    border: 1px solid #dee2e6;
+    border-radius: 3px;
   }
   </style>
   
