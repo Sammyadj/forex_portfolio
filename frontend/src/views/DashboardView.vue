@@ -1,4 +1,37 @@
 <template>
+  <div class="dashboard">
+    <h1>Dashboard</h1>
+  </div>
+  <div>
+    <BotController />
+  </div>
+</template>
+
+<script>
+import BotController from '@/components/BotController.vue';
+
+export default {
+  name: 'Dashboard',
+  components: {
+    BotController,
+  },
+  setup() {
+
+
+    return {
+      // portfolioData,
+    };
+  },
+};
+</script>
+
+<style scoped>
+.dashboard {
+  padding: 20px;
+}
+</style>
+
+<!-- <template>
   <div class="container mt-4">
     <h1>Dashboard</h1>
     <div v-if="profile">
@@ -36,38 +69,7 @@ export default {
   margin-top: 20px;
   text-align: center;
 }
-</style>
+</style> -->
 
-<!-- <script>
-import { useProfileStore } from '@/stores/profile';
-import { useTradeStore } from '@/stores/tradeStore';
-import { useWebSocketStore } from '@/stores/webSocketStore';
-import { useAccountStore } from '@/stores/accountStore';
-import { computed } from 'vue';
-
-export default {
-  setup() {
-    const profileStore = useProfileStore();
-    const profile = computed(() => profileStore.profile);
-    const profileId = profileStore.profile?.id;
-    
-
-    return {
-      profile,
-      profileId,
-    };
-  },
-  mounted() {
-    const tradeStore = useTradeStore();
-    tradeStore.initializeWebSocket();
-
-    const webSocketStore = useWebSocketStore();
-    webSocketStore.initializeWebSocket();
-
-    const accountStore = useAccountStore();
-    accountStore.initializeWebSocket();
-  },
-}
-</script> -->
 
 

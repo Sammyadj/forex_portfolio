@@ -1,54 +1,3 @@
-<!-- <template>
-  <div class="trade-form">
-    <button class="buy-button" @click="execute_trade('BUY', askPrice)">
-      BUY <div class="buy-price">{{ askPrice }}</div>
-    </button>
-    <button class="sell-button" @click="execute_trade('SELL', bidPrice)">
-      SELL <div class="sell-price">{{ bidPrice }}</div>
-    </button>
-  </div>
-</template>
-
-<script>
-import { usepricingStore } from '@/stores/pricingStore';
-import { useTradeStore } from '@/stores/tradeStore';
-import { computed } from 'vue';
-
-export default {
-  props: {
-    instrument: {
-      type: String,
-      default: 'EUR_USD'
-    }
-  },
-  setup(props) {
-    const pricingStore = usepricingStore();
-    const tradeStore = useTradeStore();
-
-    // Computed properties to get the bid and ask price from the store
-    const bidPrice = computed(() => pricingStore.prices[props.instrument]?.bid || 'Loading...');
-    const askPrice = computed(() => pricingStore.prices[props.instrument]?.ask || 'Loading...');
-
-    function execute_trade(type, price) {
-      console.log(`Attempting to ${type} ${props.instrument} at ${price}`);
-      // trade submission logic here
-      const data = {
-        type,
-        instrument: props.instrument,
-        price
-      }
-      tradeStore.sendTradeCommand(data);
-    }
-
-    return {
-      bidPrice,
-      askPrice,
-      execute_trade
-    };
-  }
-}
-</script> -->
-
 <template>
   <div class="trade-form">
     <button class="buy-button" @click="execute_trade('BUY', askPrice)">
@@ -73,7 +22,7 @@ export default {
   props: {
     instrument: {
       type: String,
-      default: 'EUR_USD'
+      default: 'EUR/USD'
     }
   },
   setup(props) {
@@ -111,7 +60,7 @@ export default {
     return {
       bidPrice,
       askPrice,
-      currentPrice,  // Expose currentPrice to use in the UI or other components
+      // currentPrice,
       execute_trade,
       currentPriceStream
     };

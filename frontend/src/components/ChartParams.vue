@@ -5,13 +5,13 @@
           {{ selectedInstrument }}
         </button>
         <div class="dropdown-menu">
-          <a class="dropdown-item" href="#" @click="updateInstrument('EUR_USD')">EUR/USD</a>
-          <a class="dropdown-item" href="#" @click="updateInstrument('GBP_USD')">GBP/USD</a>
-          <a class="dropdown-item" href="#" @click="updateInstrument('USD_JPY')">USD/JPY</a>
-          <a class="dropdown-item" href="#" @click="updateInstrument('AUD_USD')">AUD/USD</a>
-          <a class="dropdown-item" href="#" @click="updateInstrument('GBP_JPY')">GBP/JPY</a>
-          <a class="dropdown-item" href="#" @click="updateInstrument('USD_CAD')">USD/CAD</a>
-          <a class="dropdown-item" href="#" @click="updateInstrument('GBP_CHF')">GBP/CHF</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('EUR/USD')">EUR/USD</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('GBP/USD')">GBP/USD</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('USD/JPY')">USD/JPY</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('AUD/USD')">AUD/USD</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('GBP/JPY')">GBP/JPY</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('USD/CAD')">USD/CAD</a>
+          <a class="dropdown-item" href="#" @click="updateInstrument('GBP/CHF')">GBP/CHF</a>
         </div>
       </div>
 
@@ -35,7 +35,7 @@
     data() {
       return {
         selectedGranularity: 'H1',
-        selectedInstrument: 'EUR_USD',
+        selectedInstrument: 'EUR/USD',
       };
     },
     methods: {

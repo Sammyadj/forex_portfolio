@@ -1,6 +1,6 @@
 import { defineStore } from 'pinia';
-import axios from 'axios';
 import { reactive } from 'vue';
+import { makeApiCall } from '@/stores/authHelpers';
 
 export const useProfileStore = defineStore('profile', {
   state: () => {
@@ -10,23 +10,18 @@ export const useProfileStore = defineStore('profile', {
   },
   actions: {
     async fetchProfile() {
-      const accessToken = localStorage.getItem('access_token');
-      if (!accessToken) {
-        console.error('No access token available.');
-        return;
-      }
-      await axios.get('/api/accounts/current_profile/', {
-        headers: {
-          Authorization: `Bearer ${accessToken}`
-        }
-      })
-      .then(response => {
+      try {
+        const response = await makeApiCall('/api/accounts/current_profile/');
         console.log('Profile data:', response.data);
         this.profile = response.data;
-      })
-      .catch(error => {
+      } catch (error) {
         console.error('Failed to fetch profile:', error);
-      });
+      }
+    }
+  },
+  getters: {
+    profileId(state) {
+      return state.profile ? state.profile.id : null;
     }
   }
 });

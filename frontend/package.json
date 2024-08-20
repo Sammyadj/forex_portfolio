@@ -9,11 +9,13 @@
   "dependencies": {
     "axios": "^1.7.2",
     "bootstrap": "^5.3.3",
+    "chart.js": "^4.4.3",
     "echarts": "^5.5.1",
     "highcharts": "^11.4.7",
     "highcharts-vue": "^2.0.1",
     "pinia": "^2.2.0",
     "vue": "^3.2.13",
+    "vue-chartjs": "^5.3.1",
     "vue-highcharts": "^0.2.0",
     "vue-router": "^4.0.3"
   },

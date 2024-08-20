@@ -1,4 +1,5 @@
 from channels.generic.websocket import AsyncWebsocketConsumer, AsyncJsonWebsocketConsumer
+from channels.layers import get_channel_layer
 from asgiref.sync import sync_to_async
 from channels.db import database_sync_to_async
 import json
@@ -27,7 +28,7 @@ class PriceStreamConsumer(AsyncWebsocketConsumer):
 
     async def receive(self, text_data=None, bytes_data=None):
         text_data_json = json.loads(text_data)
-        print('Text data received: ', text_data_json)
+        # print('Text data received: ', text_data_json)
         instruments_received = text_data_json.get('instruments', [])
         if instruments_received:
             asyncio.get_event_loop().create_task(self.stream_prices(instruments_received))
@@ -58,6 +59,7 @@ class PriceStreamConsumer(AsyncWebsocketConsumer):
                             "message": decoded_line
                         }
                     )
+                    # print(decoded_line)
 
     async def price_update(self, event):
         # print('Price update received...')
@@ -68,38 +70,43 @@ class PriceStreamConsumer(AsyncWebsocketConsumer):
 # CONSUMER FOR STREAMING ACCOUNTS INFORMATION
 class AccountInfoConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        print('User in Account Info scope: ', self.scope['user'])
         if self.scope["user"].is_authenticated:
             self.profile = await self.get_profile(self.scope["user"].id)
+            self.account_group_name = f'account_{self.profile.id}'
+
+            # Join the group for account updates
+            await self.channel_layer.group_add(
+                self.account_group_name,
+                self.channel_name
+            )
+
             await self.accept()
-            profile_str = await self.get_profile_str()
-            print(f"{profile_str} connected to websocket")
+
+            # Send the initial account info when the connection is established
+            await self.send_account_info()
         else:
-            print("User is not authenticated.")
+            print("Not authenticated")
             await self.close()
 
     async def disconnect(self, close_code):
-        pass
+        # Leave the group on disconnect
+        await self.channel_layer.group_discard(
+            self.account_group_name,
+            self.channel_name
+        )
 
     async def receive_json(self, content):
-        from accounts.models import Profile
         if content.get('command') == 'get_account_info':
-            if isinstance(self.profile, Profile):
-                account_info = await self.get_account_info()
-                print('Account Info: ', account_info)
-                await self.send_json(account_info)
-            else:
-                await self.send_json({'error': 'Profile does not exist.'})
+            await self.send_account_info()
 
     @database_sync_to_async
     def get_profile(self, user_id):
         from accounts.models import Profile
         return Profile.objects.get(user__id=user_id)
 
-    @database_sync_to_async
-    def get_profile_str(self):
-        # Returns the string representation of the profile asynchronously
-        return str(self.profile)
+    async def send_account_info(self):
+        account_info = await self.get_account_info()
+        await self.send_json(account_info)
 
     @database_sync_to_async
     def get_account_info(self):
@@ -111,11 +118,26 @@ class AccountInfoConsumer(AsyncJsonWebsocketConsumer):
             'realized_pl': f"{self.profile.realized_pl():.2f}"
         }
 
+    async def broadcast_account_update(self):
+        # Fetch the updated account information
+        account_info = await self.get_account_info()
+        # Send the updated information to all clients in the group
+        await self.channel_layer.group_send(
+            self.account_group_name,
+            {
+                'type': 'account.update',
+                'data': account_info
+            }
+        )
+
+    async def account_update(self, event):
+        # Send updated account information to WebSocket
+        await self.send_json(event['data'])
+
 
 # CONSUMER FOR STREAMING TRADE UPDATES
 class TradeConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
-        print('User in scope: ', self.scope['user'])
         if self.scope["user"].is_authenticated:
             self.profile = await self.get_profile(self.scope["user"].id)
             await self.accept()
@@ -157,13 +179,17 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
             instrument=instrument,
             currency_pair=trade_data['instrument'],
             volume=trade_data.get('volume', 1),
-            entry_price=trade_data['price']
+            entry_price=trade_data['price'],
+            trade_type=trade_data['type']
         )
 
         await self.channel_layer.group_send(
             "trade_updates",
             {"type": "trade.update", "trade": self.trade_to_dict(trade)}
         )
+
+        # Broadcast the account update after the trade is executed
+        await self.broadcast_account_update(profile.id)
 
     async def handle_close_trade(self, trade_data):
         trade = await self.get_trade(trade_data['trade_id'])
@@ -172,6 +198,21 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
         await self.channel_layer.group_send(
             "trade_updates",
             {"type": "trade.update", "trade": self.trade_to_dict(trade)}
+        )
+
+        await self.broadcast_account_update(trade.profile.id)
+
+    async def broadcast_account_update(self, profile_id):
+        channel_layer = get_channel_layer()
+        account_group_name = f'account_{profile_id}'
+
+        # Send an account update to the specific account group
+        await channel_layer.group_send(
+            account_group_name,
+            {
+                'type': 'account.update',
+                'data': await self.get_account_info(profile_id)
+            }
         )
 
     @sync_to_async
@@ -187,7 +228,7 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
     @sync_to_async
     def get_instrument(self, instrument_name):
         from .models import Instrument
-        return Instrument.objects.get(name=instrument_name)
+        return Instrument.objects.get(display_name=instrument_name)
 
     @sync_to_async
     def get_trade(self, trade_id):
@@ -195,19 +236,32 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
         return Trade.objects.get(id=trade_id)
 
     @sync_to_async
-    def create_trade(self, profile, instrument, currency_pair, volume, entry_price):
+    def create_trade(self, profile, instrument, currency_pair, volume, entry_price, trade_type):
         from .models import Trade
         return Trade.objects.create(
             profile=profile,
             instrument=instrument,
             currency_pair=currency_pair,
             volume=volume,
-            entry_price=entry_price
+            entry_price=entry_price,
+            trade_type=trade_type.lower()
         )
 
     @sync_to_async
     def close_trade(self, trade, exit_price):
         trade.close_trade(exit_price)
+
+    @sync_to_async
+    def get_account_info(self, profile_id):
+        from accounts.models import Profile
+        profile = Profile.objects.get(id=profile_id)
+        return {
+            'account_id': str(profile.id),
+            'balance': f"{profile.balance:.2f}",
+            'equity': f"{profile.equity():.2f}",
+            'unrealized_pl': f"{profile.unrealized_pl():.2f}",
+            'realized_pl': f"{profile.realized_pl():.2f}"
+        }
 
     def trade_to_dict(self, trade):
         return {
@@ -218,7 +272,8 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
             'exit_price': str(trade.exit_price) if trade.exit_price else None,
             'open_date': trade.open_date.isoformat(),
             'close_date': trade.close_date.isoformat() if trade.close_date else None,
-            'is_open': trade.is_open
+            'is_open': trade.is_open,
+            'trade_type': trade.trade_type
         }
 
     async def trade_update(self, event):
@@ -230,24 +285,26 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
             "trade": self.trade_to_dict(trade)
         })
 
+
 # class TradeConsumer(AsyncJsonWebsocketConsumer):
-#
 #     async def connect(self):
 #         if self.scope["user"].is_authenticated:
+#             self.profile = await self.get_profile(self.scope["user"].id)
 #             await self.accept()
-#             await self.channel_layer.group_add("trade_updates", self.channel_name)
-#             trades = await self.get_user_trades(self.scope["user"].id)
+#
+#             # Fetch existing trades asynchronously
+#             trades = await self.get_trades(self.profile.id)
 #             for trade in trades:
-#                 await self.send_json({
-#                     "type": "trade.update",
-#                     "trade": self.trade_to_dict(trade),
-#                 })
+#                 await self.send_trade_update(trade)
+#
+#             # Now that the connection is established, you can subscribe to future trade updates
+#             await self.channel_layer.group_add("trade_updates", self.channel_name)
 #         else:
+#             print("User is not authenticated.")
 #             await self.close()
 #
 #     async def disconnect(self, close_code):
 #         await self.channel_layer.group_discard("trade_updates", self.channel_name)
-#         print('Disconnected from trade consumer...')
 #
 #     async def receive_json(self, content):
 #         command = content.get("command", "")
@@ -261,89 +318,9 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
 #                 await self.handle_close_trade(trade_data)
 #         except Exception as e:
 #             print(f"Error processing {command}: {e}")
-#             await self.send_json({"error": str(e)})
-#
-#     @database_sync_to_async
-#     def get_user_trades(self, user_id):
-#         from .models import Trade
-#         return Trade.objects.filter(profile__user__id=user_id)
-#
-#     @database_sync_to_async
-#     def get_profile(self, profile_id):
-#         from accounts.models import Profile
-#         return Profile.objects.get(id=profile_id)
-#
-#     @database_sync_to_async
-#     def get_instrument(self, instrument_name):
-#         from .models import Instrument
-#         return Instrument.objects.get(name=instrument_name)
-#
-#     @database_sync_to_async
-#     def get_trade(self, trade_id):
-#         from .models import Trade
-#         return Trade.objects.get(id=trade_id)
-#
-#     @database_sync_to_async
-#     def create_trade(self, profile, instrument, currency_pair, volume, entry_price):
-#         from .models import Trade
-#         return Trade.objects.create(
-#             profile=profile,
-#             instrument=instrument,
-#             currency_pair=currency_pair,
-#             volume=volume,
-#             entry_price=entry_price
-#         )
-#
-#     @database_sync_to_async
-#     def close_trade(self, trade, exit_price):
-#         trade.close_trade(exit_price)
-#
-#     def trade_to_dict(self, trade):
-#         return {
-#             'id': trade.id,
-#             'currency_pair': trade.currency_pair,
-#             'volume': str(trade.volume),
-#             'entry_price': str(trade.entry_price),
-#             'exit_price': str(trade.exit_price) if trade.exit_price else None,
-#             'open_date': trade.open_date.isoformat(),
-#             'close_date': trade.close_date.isoformat() if trade.close_date else None,
-#             'is_open': trade.is_open
-#         }
-#
-#     async def trade_update(self, event):
-#         await self.send_json(event)
-
-
-# class TradeConsumer(AsyncJsonWebsocketConsumer):
-#     async def connect(self):
-#         await self.accept()
-#         await self.channel_layer.group_add("trade_updates", self.channel_name)
-#
-#     async def disconnect(self, close_code):
-#         print('Disconnected from trade consumer...')
-#         await self.channel_layer.group_discard("trade_updates", self.channel_name)
-#
-#     async def receive_json(self, content):
-#         command = content.get("command", "")
-#         print('command received: ', command)
-#         try:
-#             if command == "execute_trade":
-#                 trade_data = content.get("trade")
-#                 await self.handle_execute_trade(trade_data)
-#             elif command == "close_trade":
-#                 trade_data = content.get("trade")
-#                 await self.handle_close_trade(trade_data)
-#         except Exception as e:
-#             # Log the error
-#             print(f"Error processing {command}: {e}")
-#             # send an error message back to the client
-#             await self.send_json({
-#                 'error': str(e)
-#             })
+#             await self.send_json({'error': str(e)})
 #
 #     async def handle_execute_trade(self, trade_data):
-#         # print('Execute trade triggered')
-#
 #         profile = await self.get_profile(trade_data['profile_id'])
 #         instrument = await self.get_instrument(trade_data['instrument'])
 #
@@ -352,34 +329,51 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
 #             instrument=instrument,
 #             currency_pair=trade_data['instrument'],
 #             volume=trade_data.get('volume', 1),
-#             entry_price=trade_data['price']
+#             entry_price=trade_data['price'],
+#             trade_type=trade_data['type']
 #         )
 #
-#         await self.channel_layer.group_send("trade_updates", {
-#             "type": "trade.update",
-#             "trade": self.trade_to_dict(trade)
-#         })
+#         await self.channel_layer.group_send(
+#             "trade_updates",
+#             {"type": "trade.update", "trade": self.trade_to_dict(trade)}
+#         )
+#
+#         # Broadcast the account update after the trade is executed
+#         await self.broadcast_account_update(profile.id)
 #
 #     async def handle_close_trade(self, trade_data):
-#         # print('Close trade triggered')
 #         trade = await self.get_trade(trade_data['trade_id'])
 #         await self.close_trade(trade, trade_data['exit_price'])
 #
-#         # Broadcast the closed trade update
-#         await self.channel_layer.group_send("trade_updates", {
-#             "type": "trade.update",
-#             "trade": self.trade_to_dict(trade)
-#         })
+#         await self.channel_layer.group_send(
+#             "trade_updates",
+#             {"type": "trade.update", "trade": self.trade_to_dict(trade)}
+#         )
+#
+#         await self.broadcast_account_update(trade.profile.id)
+#
+#     async def broadcast_account_update(self, profile_id):
+#         # Assuming each profile has an associated AccountInfoConsumer
+#         # we send an account update message to that consumer
+#         account_consumer = AccountInfoConsumer(self.scope)
+#         account_consumer.profile = await self.get_profile(profile_id)
+#         await account_consumer.broadcast_account_update()
 #
 #     @sync_to_async
-#     def get_profile(self, profile_id):
+#     def get_profile(self, user_id):
 #         from accounts.models import Profile
-#         return Profile.objects.get(id=profile_id)
+#         return Profile.objects.get(user__id=user_id)
+#
+#     @sync_to_async
+#     def get_trades(self, profile_id):
+#         from .models import Trade
+#         return list(Trade.objects.filter(profile_id=profile_id))
 #
 #     @sync_to_async
 #     def get_instrument(self, instrument_name):
 #         from .models import Instrument
-#         return Instrument.objects.get(name=instrument_name)
+#         # formatted_instrument_name = instrument_name.replace('/', '_')
+#         return Instrument.objects.get(display_name=instrument_name)
 #
 #     @sync_to_async
 #     def get_trade(self, trade_id):
@@ -387,14 +381,15 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
 #         return Trade.objects.get(id=trade_id)
 #
 #     @sync_to_async
-#     def create_trade(self, profile, instrument, currency_pair, volume, entry_price):
+#     def create_trade(self, profile, instrument, currency_pair, volume, entry_price, trade_type):
 #         from .models import Trade
 #         return Trade.objects.create(
 #             profile=profile,
 #             instrument=instrument,
 #             currency_pair=currency_pair,
 #             volume=volume,
-#             entry_price=entry_price
+#             entry_price=entry_price,
+#             trade_type=trade_type.lower()
 #         )
 #
 #     @sync_to_async
@@ -410,9 +405,15 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
 #             'exit_price': str(trade.exit_price) if trade.exit_price else None,
 #             'open_date': trade.open_date.isoformat(),
 #             'close_date': trade.close_date.isoformat() if trade.close_date else None,
-#             'is_open': trade.is_open
+#             'is_open': trade.is_open,
+#             'trade_type': trade.trade_type
 #         }
 #
 #     async def trade_update(self, event):
-#         print('Trade update: ', event)
 #         await self.send_json(event)
+#
+#     async def send_trade_update(self, trade):
+#         await self.send_json({
+#             "type": "trade.update",
+#             "trade": self.trade_to_dict(trade)
+#         })

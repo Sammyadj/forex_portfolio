@@ -59,7 +59,7 @@ export default {
   },
   data() {
     return {
-      instrument: 'EUR_USD',
+      instrument: 'EUR/USD',
       granularity: 'H1'
     };
   },

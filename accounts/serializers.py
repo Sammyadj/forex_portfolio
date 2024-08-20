@@ -3,6 +3,8 @@ from decimal import Decimal
 from rest_framework import serializers
 from django.contrib.auth.password_validation import validate_password
 from django.db import transaction
+
+from portfolio.models import Portfolio
 from .models import Profile
 
 
@@ -33,7 +35,10 @@ class RegisterSerializer(serializers.ModelSerializer):
             user.save()
 
             # Create the profile
-            Profile.objects.create(user=user, balance=balance)
+            profile = Profile.objects.create(user=user, balance=balance)
+
+            # Create the portfolio
+            Portfolio.objects.create(profile=profile, balance=balance, equity=balance)
 
             return user
 
@@ -49,7 +54,7 @@ class ProfileSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Profile
-        fields = ('id', 'username', 'balance')
+        fields = ('id', 'username', 'balance', 'realized_pl')
 
     balance = serializers.DecimalField(max_digits=7, decimal_places=2, min_value=Decimal(100.00),
                                        max_value=Decimal(1000.00))

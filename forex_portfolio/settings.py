@@ -32,7 +32,8 @@ INSTALLED_APPS = [
     'crispy_bootstrap5',
     'corsheaders',
     'rest_framework',
-    "portfolio.apps.PortfolioConfig"
+    "portfolio.apps.PortfolioConfig",
+    'django_celery_beat'
 
 ]
 
@@ -90,6 +91,22 @@ CHANNEL_LAYERS = {
     },
 }
 
+# Celery settings
+CELERY_BROKER_URL = 'redis://localhost:6379/0'  # Use Redis as the broker
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'  # Store results in Redis
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_RESULT_SERIALIZER = 'json'
+CELERY_TIMEZONE = 'UTC'
+
+# Celery Beat settings
+CELERY_BEAT_SCHEDULE = {
+    'run-bot-task-every-minute': {
+        'task': 'portfolio.tasks.run_bot_task',
+        'schedule': 60.0,  # Run every 60 seconds (1 minute)
+    },
+}
+
 # Password validation
 # https://docs.djangoproject.com/en/5.0/ref/settings/#auth-password-validators
 
@@ -138,7 +155,13 @@ STATICFILES_DIRS = [BASE_DIR / 'frontend' / 'dist']
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 CRISPY_TEMPLATE_PACK = 'bootstrap5'
+
 CRISPY_ALLOWED_TEMPLATE_PACKS = 'bootstrap5'
 
+CORS_ALLOWED_ORIGINS = [
+    "http://localhost:8000",
+    "http://localhost:8080",
+    "http://localhost:3000",
+]
+
 CORS_ALLOW_ALL_ORIGINS = True
-# CORS_ALLOWED_ORIGINS = ['http://localhost:8080', ]
