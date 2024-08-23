@@ -4,7 +4,7 @@ import { useProfileStore } from './profile';
 import { useTradeStore } from './tradeStore';
 import { usePricingStore } from './pricingStore';
 import { useAccountStore } from './accountStore';
-import { usePortfolioStore } from './portfolioStore';
+// import { usePortfolioStore } from './portfolioStore';
 
 export const useAuthStore = defineStore('auth', {
   state: () => ({
@@ -14,23 +14,32 @@ export const useAuthStore = defineStore('auth', {
     async login(username, password) {
       try {
         const response = await axios.post('/api/token/', { username, password });
-        localStorage.setItem('access_token', response.data.access);
         this.isAuthenticated = true;
+        localStorage.setItem('access_token', response.data.access);
+        localStorage.setItem('refresh_token', response.data.refresh);
     
         // Fetch the user profile
         const profileStore = useProfileStore();
         await profileStore.fetchProfile();
     
         // Initialize WebSockets after login
+        // const portfolioStore = usePortfolioStore();
         const tradeStore = useTradeStore();
         const pricingStore = usePricingStore();
         const accountStore = useAccountStore();
-        const portfolioStore = usePortfolioStore();
         
-        portfolioStore.initializeWebSocket();
+        // portfolioStore.initializeWebSocket();
         tradeStore.initializeWebSocket();
-        accountStore.initializeWebSocket();
         pricingStore.initializeWebSocket();
+        accountStore.initializeWebSocket();
+
+        // tradeStore.initializeWebSocket().then(() => {
+        //   return pricingStore.initializeWebSocket();
+        // }).then(() => {
+        //   return accountStore.initializeWebSocket();
+        // }).catch(error => {
+        //   console.error('WebSocket initialization failed:', error);
+        // });
     
       } catch (error) {
         console.error('Authentication failed:', error.response.data);
@@ -41,15 +50,15 @@ export const useAuthStore = defineStore('auth', {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       
-      const accountStore = useAccountStore();
+      // const portfolioStore = usePortfolioStore();
       const tradeStore = useTradeStore();
       const pricingStore = usePricingStore();
-      const portfolioStore = usePortfolioStore();
+      const accountStore = useAccountStore();
       
-      accountStore.closeWebSocket();
+      // portfolioStore.closeWebSocket();
       tradeStore.closeWebSocket();
       pricingStore.closeWebSocket();
-      portfolioStore.closeWebSocket();
+      accountStore.closeWebSocket();
     
       this.isAuthenticated = false;
     }

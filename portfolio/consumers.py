@@ -16,13 +16,13 @@ class PortfolioConsumer(AsyncWebsocketConsumer):
 
             # Send initial portfolio data
             portfolio_data = await self.get_portfolio_data()
-            if portfolio_data:
-                await self.send(json.dumps({
-                    'type': 'portfolio.initial',
-                    'data': portfolio_data
-                }))
-            else:
+            if not portfolio_data:
                 await self.send(json.dumps({'error': 'No portfolio data available'}))
+
+            await self.send(json.dumps({
+                'type': 'portfolio.initial',
+                'data': portfolio_data
+            }))
         else:
             await self.close()
 
@@ -37,7 +37,7 @@ class PortfolioConsumer(AsyncWebsocketConsumer):
         pass
 
     async def portfolio_update(self, event):
-        # Send the updated portfolio data to WebSocket
+        # Send updated portfolio data to WebSocket
         await self.send(text_data=json.dumps({
             'type': 'portfolio.update',
             'data': event['data']
@@ -45,47 +45,30 @@ class PortfolioConsumer(AsyncWebsocketConsumer):
 
     @database_sync_to_async
     def get_portfolio_data(self):
-        from accounts.models import Profile
-        from .models import Portfolio
-        from trading.models import Trade
-
-        profile = Profile.objects.get(user=self.user)
+        from portfolio.models import Portfolio, PortfolioInstrument
         try:
-            portfolio = Portfolio.objects.get(profile=profile)
+            portfolio = Portfolio.objects.get(profile__user=self.user)
+            portfolio_value = float(portfolio.equity)  # Convert to float
+            balance = float(portfolio.balance)
+            equity = float(portfolio.equity)
+            unrealized_pl = float(portfolio.profile.unrealized_pl())
+            realized_pl = float(portfolio.profile.realized_pl)
 
-            # Calculate the allocation of each asset
-            trades = Trade.objects.filter(profile=profile, is_open=True)
-            total_equity = portfolio.equity
-            allocations = []
-
-            if total_equity > 0:
-                asset_summary = {}
-
-                for trade in trades:
-                    asset = trade.currency_pair
-                    if asset not in asset_summary:
-                        asset_summary[asset] = {
-                            'volume': 0,
-                            'total_value': 0
-                        }
-
-                    current_value = trade.volume * trade.instrument.current_price()
-                    asset_summary[asset]['volume'] += trade.volume
-                    asset_summary[asset]['total_value'] += current_value
-
-                for asset, data in asset_summary.items():
-                    allocation_percentage = (data['total_value'] / total_equity) * 100
-                    allocations.append({
-                        'name': asset,
-                        'allocation': allocation_percentage
-                    })
+        # Calculate current asset allocation
+            asset_allocations = {}
+            portfolio_instruments = PortfolioInstrument.objects.filter(portfolio=portfolio)
+            for pi in portfolio_instruments:
+                asset_allocations[pi.instrument.display_name] = {
+                    'current_allocation': float(pi.current_allocation),
+                    'target_allocation': float(pi.target_allocation)
+                }
 
             return {
-                'balance': float(f"{portfolio.balance:.2f}"),
-                'equity': float(f"{total_equity:.2f}"),
-                'allocations': allocations  # List of assets with their allocations
+                'balance': balance,
+                'equity': equity,
+                'unrealized_pl': unrealized_pl,
+                'realized_pl': realized_pl,
+                'asset_allocations': asset_allocations,
             }
-
         except Portfolio.DoesNotExist:
-            print(f"No portfolio found for profile {profile.id}")
             return None

@@ -14,7 +14,7 @@
         </div>
 
         <!-- Chart and Trade Buttons Section -->
-        <div class="row h-100">
+        <div class="row h-80">
           <div class="col-lg-10 col-md-8 col-12">
             <CandlestickChart :instrument="instrument" :granularity="granularity" />
           </div>
@@ -40,7 +40,9 @@
 
 <script>
 import { usePricingStore } from '@/stores/pricingStore';
-// import { useTradeStore } from '@/stores/tradeStore';
+import { useTradeStore } from '@/stores/tradeStore';
+// import { usePortfolioStore } from '@/stores/portfolioStore';
+import { useAccountStore } from '@/stores/accountStore';
 import PriceStream from '@/components/PriceStream.vue';
 import CandlestickChart from '@/components/CandlestickChart.vue';
 import ChartParams from '@/components/ChartParams.vue';
@@ -72,8 +74,19 @@ export default {
     }
   },
   mounted() {
-    const webSocketStore = usePricingStore();
-    webSocketStore.initializeWebSocket(); 
+
+    // const portfolioStore = usePortfolioStore();
+    const tradeStore = useTradeStore();
+    const pricingStore = usePricingStore();
+    const accountStore = useAccountStore();
+    
+    // if (tradeStore.socket && pricingStore.socket) {
+    //   return;
+    // }
+    // portfolioStore.initializeWebSocket();
+    tradeStore.initializeWebSocket();
+    pricingStore.initializeWebSocket();
+    accountStore.initializeWebSocket();
 
   }
 }

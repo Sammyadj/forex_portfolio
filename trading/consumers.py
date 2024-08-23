@@ -17,9 +17,10 @@ OANDA_STREAM_URL = os.getenv("OANDA_STREAM_URL")
 
 class PriceStreamConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        await self.accept()
-        self.heartbeat_task = asyncio.create_task(self.send_heartbeat())
-        await self.channel_layer.group_add("pricing_groups", self.channel_name)
+        if self.scope["user"].is_authenticated:
+            await self.accept()
+            self.heartbeat_task = asyncio.create_task(self.send_heartbeat())
+            await self.channel_layer.group_add("pricing_groups", self.channel_name)
 
     async def disconnect(self, close_code):
         if self.heartbeat_task:
@@ -85,11 +86,12 @@ class AccountInfoConsumer(AsyncJsonWebsocketConsumer):
             # Send the initial account info when the connection is established
             await self.send_account_info()
         else:
-            print("Not authenticated")
+            print(f"Connection refused: User is not authenticated. User ID: {self.scope['user'].id}")
             await self.close()
 
     async def disconnect(self, close_code):
         # Leave the group on disconnect
+        print(f"WebSocket disconnected with close code: {close_code}")
         await self.channel_layer.group_discard(
             self.account_group_name,
             self.channel_name
@@ -106,16 +108,21 @@ class AccountInfoConsumer(AsyncJsonWebsocketConsumer):
 
     async def send_account_info(self):
         account_info = await self.get_account_info()
+
+        account_info['balance'] = float(account_info['balance'])
+        account_info['equity'] = float(account_info['equity'])
+        account_info['unrealized_pl'] = float(account_info['unrealized_pl'])
+        account_info['realized_pl'] = float(account_info['realized_pl'])
         await self.send_json(account_info)
 
     @database_sync_to_async
     def get_account_info(self):
         return {
             'account_id': str(self.profile.id),
-            'balance': f"{self.profile.balance:.2f}",
-            'equity': f"{self.profile.equity():.2f}",
-            'unrealized_pl': f"{self.profile.unrealized_pl():.2f}",
-            'realized_pl': f"{self.profile.realized_pl():.2f}"
+            'balance': float(f"{self.profile.balance}"),
+            'equity': float(f"{self.profile.equity():4f}"),
+            'unrealized_pl': float(f"{self.profile.unrealized_pl():4f}"),
+            'realized_pl': float(f"{self.profile.realized_pl}")
         }
 
     async def broadcast_account_update(self):
@@ -140,6 +147,7 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
     async def connect(self):
         if self.scope["user"].is_authenticated:
             self.profile = await self.get_profile(self.scope["user"].id)
+            # self.heartbeat_task = asyncio.create_task(self.send_heartbeat())
             await self.accept()
 
             # Fetch existing trades asynchronously
@@ -169,6 +177,14 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
         except Exception as e:
             print(f"Error processing {command}: {e}")
             await self.send_json({'error': str(e)})
+
+    # async def send_heartbeat(self):
+    #     while True:
+    #         try:
+    #             await self.send(json.dumps({'type': 'heartbeat'}))
+    #             await asyncio.sleep(30)
+    #         except asyncio.CancelledError:
+    #             break
 
     async def handle_execute_trade(self, trade_data):
         profile = await self.get_profile(trade_data['profile_id'])
@@ -257,10 +273,10 @@ class TradeConsumer(AsyncJsonWebsocketConsumer):
         profile = Profile.objects.get(id=profile_id)
         return {
             'account_id': str(profile.id),
-            'balance': f"{profile.balance:.2f}",
-            'equity': f"{profile.equity():.2f}",
-            'unrealized_pl': f"{profile.unrealized_pl():.2f}",
-            'realized_pl': f"{profile.realized_pl():.2f}"
+            'balance': f"{profile.balance}",
+            'equity': f"{profile.equity()}",
+            'unrealized_pl': f"{profile.unrealized_pl()}",
+            'realized_pl': f"{profile.realized_pl()}"
         }
 
     def trade_to_dict(self, trade):

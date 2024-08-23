@@ -1,19 +1,28 @@
 <template>
   <div class="dashboard">
-    <h1>Dashboard</h1>
+    <h3>Dashboard</h3>
   </div>
   <div>
     <BotController />
   </div>
+  <!-- <div>
+    <PortfolioOverview />
+  </div> -->
 </template>
 
 <script>
 import BotController from '@/components/BotController.vue';
+// import PortfolioOverview from '@/components/PortfolioOverview.vue';
+// import RecentTradesTable from '@/components/RecentTradesTable.vue';
+// import { usePortfolioStore } from '@/stores/portfolioStore';
+
 
 export default {
   name: 'Dashboard',
   components: {
     BotController,
+    // PortfolioOverview,
+    // RecentTradesTable,
   },
   setup() {
 
@@ -22,6 +31,10 @@ export default {
       // portfolioData,
     };
   },
+  // mounted() {
+  //   const portfolioStore = usePortfolioStore();
+  //   portfolioStore.initializeWebSocket();
+  // }
 };
 </script>
 

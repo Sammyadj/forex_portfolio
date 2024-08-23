@@ -19,8 +19,8 @@
         <input v-model="password2" type="password" id="password2" class="form-control" placeholder="Confirm Password" required />
       </div>
       <div class="mb-3">
-        <label for="balance" class="form-label">Initial Deposit (£100 - £1000)</label>
-        <input v-model.number="balance" type="number" id="balance" class="form-control" placeholder="Initial Deposit" required min="100" max="1000" />
+        <label for="balance" class="form-label">Initial Deposit (£100 - £10000)</label>
+        <input v-model.number="balance" type="number" id="balance" class="form-control" placeholder="Initial Deposit" required min="100" max="10000" />
       </div>
       <button type="submit" class="btn btn-primary">Register</button>
     </form>

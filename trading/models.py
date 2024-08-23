@@ -54,11 +54,14 @@ class Trade(models.Model):
 
     def close_trade(self, exit_price):
         # Calculate the realized P/L
+        exit_price = Decimal(exit_price)
         pip_value = Decimal(10 ** self.instrument.pip_location)
         if self.trade_type == 'buy':
             realized_pl = (exit_price - self.entry_price) * self.volume * pip_value
         elif self.trade_type == 'sell':
             realized_pl = (self.entry_price - exit_price) * self.volume * pip_value
+        else:
+            return Decimal(0)
 
         # Update the trade details
         self.exit_price = exit_price
@@ -70,6 +73,25 @@ class Trade(models.Model):
         self.profile.balance += realized_pl
         self.profile.realized_pl += realized_pl
         self.profile.save()
+
+    def current_value(self):
+        """
+        Calculate the current market value of the trade based on the current price of the instrument
+        and the trade's volume.
+        """
+        # Get the current price of the instrument
+        current_price = self.instrument.current_price()
+
+        # Calculate the market value of the trade
+        pip_value = Decimal(10 ** self.instrument.pip_location)
+        if self.trade_type == self.BUY:
+            value = (current_price - self.entry_price) * self.volume * pip_value
+        elif self.trade_type == self.SELL:
+            value = (self.entry_price - current_price) * self.volume * pip_value
+        else:
+            value = Decimal(0)
+
+        return value
 
     def __str__(self):
         return f'{self.currency_pair} - {self.volume} at {self.entry_price}'

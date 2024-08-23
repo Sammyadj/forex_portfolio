@@ -1,4 +1,5 @@
 import os
+from datetime import timedelta
 from pathlib import Path
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
@@ -102,7 +103,7 @@ CELERY_TIMEZONE = 'UTC'
 # Celery Beat settings
 CELERY_BEAT_SCHEDULE = {
     'run-bot-task-every-minute': {
-        'task': 'portfolio.tasks.run_bot_task',
+        'task': 'portfolio.tasks.run_bot_for_all_profiles',
         'schedule': 60.0,  # Run every 60 seconds (1 minute)
     },
 }
@@ -163,5 +164,10 @@ CORS_ALLOWED_ORIGINS = [
     "http://localhost:8080",
     "http://localhost:3000",
 ]
+
+SIMPLE_JWT = {
+    'ACCESS_TOKEN_LIFETIME': timedelta(minutes=5),
+    'REFRESH_TOKEN_LIFETIME': timedelta(days=1),
+}
 
 CORS_ALLOW_ALL_ORIGINS = True

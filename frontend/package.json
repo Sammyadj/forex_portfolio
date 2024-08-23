@@ -13,10 +13,13 @@
     "echarts": "^5.5.1",
     "highcharts": "^11.4.7",
     "highcharts-vue": "^2.0.1",
+    "jwt-decode": "^4.0.0",
     "pinia": "^2.2.0",
+    "reconnecting-websocket": "^4.4.0",
     "vue": "^3.2.13",
     "vue-chartjs": "^5.3.1",
     "vue-highcharts": "^0.2.0",
+    "vue-jwt-decode": "^0.1.0",
     "vue-router": "^4.0.3"
   },
   "devDependencies": {

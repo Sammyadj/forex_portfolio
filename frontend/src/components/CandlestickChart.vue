@@ -30,7 +30,8 @@ export default {
         // await makeApiCall();
 
         // Now proceed with the actual API request using axios
-        const response = await makeApiCall(`/api/trading/candles/${this.instrument.replace('/', '_')}/?count=100&granularity=${this.granularity}`);
+        const response = await axios.get(`/api/trading/candles/${this.instrument.replace('/', '_')}/?count=100&granularity=${this.granularity}`);
+        // console.log('Fetched data: ', response.data);
         this.processAndRenderChart(response.data);
       } catch (error) {
         console.error('Error fetching candle data:', error);

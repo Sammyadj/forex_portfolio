@@ -12,7 +12,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
     balance = serializers.DecimalField(max_digits=10, decimal_places=2, write_only=True,
-                                       min_value=Decimal(100.00), max_value=Decimal(1000.00),
+                                       min_value=Decimal(100.00), max_value=Decimal(10000.00),
                                        default=Decimal(100.00))
 
     class Meta:
