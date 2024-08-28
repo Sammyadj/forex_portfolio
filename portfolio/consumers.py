@@ -1,43 +1,45 @@
 import json
 from channels.generic.websocket import AsyncWebsocketConsumer
 from channels.db import database_sync_to_async
+from channels.layers import get_channel_layer
 
 
 class PortfolioConsumer(AsyncWebsocketConsumer):
     async def connect(self):
         self.user = self.scope['user']
         if self.user.is_authenticated:
-            self.portfolio_group_name = f'portfolio_{self.user.id}'
             await self.channel_layer.group_add(
-                self.portfolio_group_name,
+                "portfolio_group",
                 self.channel_name
             )
             await self.accept()
 
-            # Send initial portfolio data
             portfolio_data = await self.get_portfolio_data()
-            if not portfolio_data:
-                await self.send(json.dumps({'error': 'No portfolio data available'}))
-
-            await self.send(json.dumps({
-                'type': 'portfolio.initial',
-                'data': portfolio_data
-            }))
+            if portfolio_data is None:
+                await self.send(json.dumps({'type': 'portfolio.initial', 'error': 'No portfolio data available'}))
+            else:
+                await self.send(json.dumps({
+                    'type': 'portfolio.initial',
+                    'data': portfolio_data
+                }))
         else:
             await self.close()
 
     async def disconnect(self, close_code):
         if self.user.is_authenticated:
             await self.channel_layer.group_discard(
-                self.portfolio_group_name,
+                "portfolio_group",
                 self.channel_name
             )
+        print(f"WebSocket disconnected: {close_code}")
 
     async def receive(self, text_data):
+        # Handle incoming WebSocket messages from clients here if needed
         pass
 
     async def portfolio_update(self, event):
-        # Send updated portfolio data to WebSocket
+        # This method handles messages sent to the "portfolio_group"
+        print(f"Portfolio update received: {event}")
         await self.send(text_data=json.dumps({
             'type': 'portfolio.update',
             'data': event['data']
@@ -48,13 +50,12 @@ class PortfolioConsumer(AsyncWebsocketConsumer):
         from portfolio.models import Portfolio, PortfolioInstrument
         try:
             portfolio = Portfolio.objects.get(profile__user=self.user)
-            portfolio_value = float(portfolio.equity)  # Convert to float
+            portfolio_value = float(portfolio.equity)
             balance = float(portfolio.balance)
             equity = float(portfolio.equity)
             unrealized_pl = float(portfolio.profile.unrealized_pl())
             realized_pl = float(portfolio.profile.realized_pl)
 
-        # Calculate current asset allocation
             asset_allocations = {}
             portfolio_instruments = PortfolioInstrument.objects.filter(portfolio=portfolio)
             for pi in portfolio_instruments:
@@ -72,3 +73,16 @@ class PortfolioConsumer(AsyncWebsocketConsumer):
             }
         except Portfolio.DoesNotExist:
             return None
+
+    @classmethod
+    async def broadcast_portfolio_update(cls, data):
+        print("Broadcasting update to portfolio_group")
+        # This method sends updates to all WebSocket clients in the group
+        await get_channel_layer().group_send(
+            "portfolio_group",
+            {
+                'type': 'portfolio_update',
+                'data': data
+            }
+        )
+
